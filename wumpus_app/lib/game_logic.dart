@@ -321,4 +321,8 @@ void main() {
   }
   // print(game);
   // print(point2num(game.player, game.size));
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 5d99a8e359ec836ec6bfde0ea66a53e7bbc5954b
