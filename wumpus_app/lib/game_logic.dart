@@ -85,6 +85,9 @@ class WumpusGame {
   List<int> player;
   List<int> wumpus;
 
+  bool gameOver = false;
+  String message = "";
+
   void setWumpus() {
     int x = rng.nextInt(size);
     int y = rng.nextInt(size);
@@ -171,12 +174,19 @@ class WumpusGame {
       if (tile.bats && rng.nextBool()) {
         break;
       }
-      x = vector[0] + player[0];
-      y = vector[1] + player[1];
+      x += vector[0];
+      y += vector[1];
+      // StringBuffer sb = new StringBuffer();
+      // sb.write(x);
+      // sb.write(", ");
+      // sb.write(y);
+      // sb.write("\n");
+      // print(sb.toString());
     }
     if (!hit && rng.nextBool()) {
       _moveWumpus();
     }
+    arrows--;
     return hit;
   }
 
@@ -209,17 +219,17 @@ class WumpusGame {
     }
     sb.write("\n");
     sb.write(senseStr());
-    sb.write("\n");
-    sb.write(wumpus);
+    sb.write("\nArrows left: ");
+    sb.write(arrows);
     return sb.toString();
   }
 
   String senseStr() {
     List<bool> senses = sense();
     StringBuffer sb = StringBuffer();
-    if (senses[0]) sb.write("flapping\n");
-    if (senses[1]) sb.write("breeze\n");
-    if (senses[2]) sb.write("smell\n");
+    if (senses[0]) sb.write("flapping ");
+    if (senses[1]) sb.write("breeze ");
+    if (senses[2]) sb.write("smell");
     if (!(senses[0] || senses[1] || senses[2])) sb.write("nothing\n");
     return sb.toString();
   }
@@ -254,39 +264,61 @@ class WumpusGame {
   bool hitBat() {
     return (board[player[0]][player[1]].bats);
   }
+
+  void setHeaders(bool finished, String msg) {
+    gameOver = finished;
+    message = msg;
+  }
+
+  //command is 2 characters, the first is m or s (move or shoot) and the second is the direction: u, d, l, r (up, down, left, right)
+  //for instance, ml means move left and sd means shoot down.
+  void interpretCommand(String comm) {
+    String action = comm[0];
+    String dirStr = comm[1];
+    Direction dir = Direction.getDirectionFromChar(dirStr);
+    if (action == "m") {
+      bool moved = move(dir);
+      if (!moved) {
+        setHeaders(false, "That is an invalid direction. Please try again!");
+      } else if (hitWumpus()) {
+        setHeaders(true, "The Wumpus got you. You lose!");
+      } else if (hitPit()) {
+        setHeaders(true, "You fell down a pit. You lose!");
+      } else {
+        setHeaders(false, "");
+      }
+    } else if (action == "s") {
+      bool win = shoot(dir);
+      if (win) {
+        setHeaders(true, "You shot the wumpus! You Win!\nCongratulations!");
+      } else {
+        if (hitWumpus()) {
+          setHeaders(true,
+              "You missed! The Wumpus ran through your tile and stomped you to death. You lose!");
+        } else if (arrows == 0) {
+          setHeaders(true, "You missed! You are out of arrows! You lose!");
+        }
+        setHeaders(false, "You missed!");
+      }
+    } else {
+      throw Exception("Interpret Command: invalid action character");
+    }
+  }
 }
 
-bool interpretCommand(WumpusGame game, String comm) {
-  String action = comm[0];
-  String dirStr = comm[1];
-  Direction dir = Direction.getDirectionFromChar(dirStr);
-  if (action == "m") {
-    bool moved = game.move(dir);
-    if (!moved) {
-      print("That is an invalid direction. Please try again!");
-    } else if (game.hitWumpus()) {
-      print("The Wumpus got you. You lose!");
-    } else if (game.hitPit()) {
-      print("You fell down a pit. You lose!");
-    } else {
-      print(game);
-    }
-    return false;
-  } else if (action == "s") {
-    bool win = game.shoot(dir);
-    return win;
-  } else {
-    throw Exception("Interpret Command: invalid action character");
-  }
+int point2num(List<int> point, int size) {
+  return point[0] + point[1] * size;
 }
 
 void main() {
   WumpusGame game = WumpusGame.standard();
-  print(game);
   bool gameOver = false;
-  while (!gameOver) {
+  while (!game.gameOver) {
+    print(game);
     String comm = stdin.readLineSync()!;
-    gameOver = interpretCommand(game, comm);
+    game.interpretCommand(comm);
+    print(game.message);
   }
-  print("You win!");
+  // print(game);
+  // print(point2num(game.player, game.size));
 }
